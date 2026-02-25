@@ -289,14 +289,16 @@
       position: absolute;
       top: 0;
       left: 0;
+      overflow: hidden; /* Clip EmulatorJS toolbar that overflows below */
     }
 
-    /* Make EmulatorJS scale properly inside the container */
+    /* Make EmulatorJS fill container, but 80px TALLER so the toolbar
+       at the bottom is pushed below game-container's edge and clipped.
+       Only SIZE properties — no visibility/display changes (those crash iOS). */
     #game-container > div {
       width: 100% !important;
-      height: 100% !important;
+      height: calc(100% + 80px) !important;
       max-width: 100vw !important;
-      max-height: 100vh !important;
     }
 
     /* Custom touch overlay */
@@ -620,7 +622,7 @@
       <div class="header">
         <h1>RETRO ARCADE</h1>
         <div class="header-subtitle">Tap a game to play</div>
-        <div class="version-tag">v20</div>
+        <div class="version-tag">v21</div>
       </div>
       <div class="library-content">
         <div id="emptyState" class="empty-state">
