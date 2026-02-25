@@ -1,0 +1,11 @@
+{
+  "games": [
+    {
+      "name": "Magic Jewelry",
+      "system": "NES",
+      "core": "nes",
+      "path": "ROM/NES/Magic Jewelry (As) [p1].nes",
+      "controls": "puzzle"
+    }
+  ]
+}

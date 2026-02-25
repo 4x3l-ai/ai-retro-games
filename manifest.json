@@ -1,0 +1,49 @@
+{
+  "name": "Retro Arcade",
+  "short_name": "Retro Arcade",
+  "description": "A personal retro game console that runs in your browser. Play classic NES, SNES, Game Boy, and Sega games offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0a0a0a",
+  "background_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23ff6b35' width='192' height='192'/><text x='96' y='120' font-size='120' text-anchor='middle' fill='%230a0a0a' font-family='Arial'>🎮</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23ff6b35' width='512' height='512'/><text x='256' y='330' font-size='320' text-anchor='middle' fill='%230a0a0a' font-family='Arial'>🎮</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230a0a0a' width='540' height='720'/><rect fill='%23ff6b35' width='540' height='80'/><text x='270' y='55' font-size='32' text-anchor='middle' fill='%230a0a0a' font-weight='bold'>RETRO ARCADE</text><circle cx='100' cy='200' r='50' fill='%23ff6b35'/><circle cx='270' cy='200' r='50' fill='%23a946ef'/><circle cx='440' cy='200' r='50' fill='%238ab83a'/><circle cx='100' cy='380' r='50' fill='%237c5295'/><circle cx='270' cy='380' r='50' fill='%230070cc'/></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Library",
+      "short_name": "Library",
+      "description": "View your games library",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23ff6b35' width='96' height='96'/><text x='48' y='65' font-size='60' text-anchor='middle' fill='%230a0a0a'>🎮</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "categories": ["games"]
+}
