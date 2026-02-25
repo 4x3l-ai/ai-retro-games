@@ -1,5 +1,5 @@
-const CACHE_NAME = 'retro-arcade-v17';
-const EMULATOR_CACHE = 'retro-arcade-emulator-v17';
+const CACHE_NAME = 'retro-arcade-v18';
+const EMULATOR_CACHE = 'retro-arcade-emulator-v18';
 
 const URLS_TO_CACHE = [
   './',
@@ -90,7 +90,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle ROM file requests with cache-first
+  // Skip caching for large files (PSX .chd, .bin, .iso) — too large for Safari cache quota
   if (url.includes('/ROM/')) {
+    const isLargeRom = /\.(chd|bin|iso|pbp|7z)$/i.test(url);
+    if (isLargeRom) {
+      // Large ROMs: network-only (no caching)
+      event.respondWith(fetch(event.request));
+      return;
+    }
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
         return cache.match(event.request).then((response) => {

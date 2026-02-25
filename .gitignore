@@ -1,0 +1,14 @@
+# Large ROM files (personal copies — not pushed to repo)
+ROM/PSX/
+*.chd
+*.bin
+*.iso
+*.pbp
+*.7z
+*.ecm
+
+# macOS
+.DS_Store
+
+# IDE
+.claude/

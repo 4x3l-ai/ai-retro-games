@@ -659,7 +659,7 @@
       <div class="header">
         <h1>RETRO ARCADE</h1>
         <div class="header-subtitle">Tap a game to play</div>
-        <div class="version-tag">v17</div>
+        <div class="version-tag">v18</div>
       </div>
       <div class="library-content">
         <div id="emptyState" class="empty-state">
@@ -669,7 +669,7 @@
         <div id="gamesGrid" class="games-grid" style="display: none;"></div>
       </div>
       <button class="add-button" id="addButton">＋</button>
-      <input type="file" id="fileInput" multiple accept=".nes,.smc,.sfc,.snes,.gb,.gbc,.gba,.md,.gen,.bin,.sms,.zip">
+      <input type="file" id="fileInput" multiple accept=".nes,.smc,.sfc,.snes,.gb,.gbc,.gba,.md,.gen,.bin,.sms,.zip,.chd,.pbp,.iso,.cue">
     </div>
 
     <!-- PLAYER VIEW -->
@@ -721,7 +721,8 @@
       'gb': { name: 'Game Boy', icon: '🟩', extensions: ['gb', 'gbc'], color: '#8ab83a' },
       'gba': { name: 'GBA', icon: '🟦', extensions: ['gba'], color: '#7c5295' },
       'segaMD': { name: 'Genesis', icon: '⬛', extensions: ['md', 'gen', 'bin'], color: '#0070cc' },
-      'segaMS': { name: 'Master System', icon: '⬛', extensions: ['sms'], color: '#000' }
+      'segaMS': { name: 'Master System', icon: '⬛', extensions: ['sms'], color: '#000' },
+      'psx': { name: 'PlayStation', icon: '🎮', extensions: ['chd', 'pbp', 'iso', 'cue'], color: '#003087' }
     };
 
     let db;
@@ -1371,9 +1372,10 @@
           };
         }
 
-        // Force WebGL preserveDrawingBuffer so our mirror canvas can copy frames via drawImage().
+        // Force WebGL preserveDrawingBuffer ONLY for puzzle mode (canvas mirror needs it).
         // Without this, the WebGL buffer is cleared after compositing → drawImage reads blank pixels.
-        if (!HTMLCanvasElement.prototype._origGetContext) {
+        // Skip for default mode — preserveDrawingBuffer hurts GPU perf on heavier cores (PSX).
+        if (currentControlScheme === 'puzzle' && !HTMLCanvasElement.prototype._origGetContext) {
           HTMLCanvasElement.prototype._origGetContext = HTMLCanvasElement.prototype.getContext;
           HTMLCanvasElement.prototype.getContext = function(type, attrs) {
             if (type === 'webgl' || type === 'webgl2') {
