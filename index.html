@@ -299,15 +299,6 @@
       max-height: 100vh !important;
     }
 
-    /* In puzzle mode: game container fills entire viewport */
-    .puzzle-mode #game-container {
-      width: 100vw !important;
-      height: 100vh !important;
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-    }
-
     /* Custom touch overlay */
     #touchOverlay {
       display: none;
@@ -620,36 +611,6 @@
       }
     }
 
-    /* ===== PUZZLE MODE ===== */
-    /* Canvas-mirror approach: a black shield covers game-container (hiding EmulatorJS UI),
-       while a mirror canvas copies game visuals via drawImage() every frame.
-       ZERO CSS/JS targeting of EmulatorJS elements — any targeting causes iOS crashes. */
-
-    /* Black shield covers game-container entirely */
-    #puzzleShield {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #000;
-      z-index: 5;
-    }
-    .puzzle-mode #puzzleShield {
-      display: block;
-    }
-
-    /* Mirror canvas — sized by JS to maintain aspect ratio (object-fit on canvas is unreliable) */
-    #puzzleMirror {
-      display: none;
-      position: fixed;
-      background: #000;
-      z-index: 400;
-    }
-    .puzzle-mode #puzzleMirror {
-      display: block;
-    }
   </style>
 </head>
 <body>
@@ -659,7 +620,7 @@
       <div class="header">
         <h1>RETRO ARCADE</h1>
         <div class="header-subtitle">Tap a game to play</div>
-        <div class="version-tag">v19</div>
+        <div class="version-tag">v20</div>
       </div>
       <div class="library-content">
         <div id="emptyState" class="empty-state">
@@ -674,8 +635,6 @@
 
     <!-- PLAYER VIEW -->
     <div id="playerView">
-      <div id="puzzleShield"></div>
-      <canvas id="puzzleMirror"></canvas>
       <div id="touchOverlay"></div>
       <div class="hold-indicator" id="holdIndicator">▼ Dropping fast</div>
       <button class="back-button" id="backButton">← Back to Games</button>
@@ -1010,95 +969,48 @@
       setTimeout(() => fb.remove(), 400);
     }
 
-    // Canvas mirror: copies EmulatorJS canvas onto our own canvas every frame.
-    // A black shield covers game-container (hiding all EmulatorJS UI).
-    // This avoids ANY CSS/JS targeting of EmulatorJS elements (which causes crashes).
-    let mirrorAnimId = null;
-
-    function sizeMirrorCanvas(mirror, srcW, srcH) {
-      // Letterbox: fit source aspect ratio into viewport
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const scale = Math.min(vw / srcW, vh / srcH);
-      const w = Math.round(srcW * scale);
-      const h = Math.round(srcH * scale);
-      mirror.style.left = Math.round((vw - w) / 2) + 'px';
-      mirror.style.top = Math.round((vh - h) / 2) + 'px';
-      mirror.style.width = w + 'px';
-      mirror.style.height = h + 'px';
-    }
-
-    function startCanvasMirror() {
-      const mirror = document.getElementById('puzzleMirror');
-      const ctx = mirror.getContext('2d');
-      let lastSrcW = 0, lastSrcH = 0;
-
-      function frame() {
-        const source = document.querySelector('#game-container canvas');
-        if (source && source.width > 0 && source.height > 0) {
-          if (mirror.width !== source.width || mirror.height !== source.height) {
-            mirror.width = source.width;
-            mirror.height = source.height;
-          }
-          // Re-letterbox if source size changed
-          if (source.width !== lastSrcW || source.height !== lastSrcH) {
-            lastSrcW = source.width;
-            lastSrcH = source.height;
-            sizeMirrorCanvas(mirror, lastSrcW, lastSrcH);
-          }
-          try {
-            ctx.drawImage(source, 0, 0);
-          } catch(e) {
-            // WebGL context lost or other error — skip this frame
-          }
-        }
-        mirrorAnimId = requestAnimationFrame(frame);
-      }
-      mirrorAnimId = requestAnimationFrame(frame);
-    }
-
-    function stopCanvasMirror() {
-      if (mirrorAnimId) {
-        cancelAnimationFrame(mirrorAnimId);
-        mirrorAnimId = null;
-      }
-    }
-
     function initPuzzleTouchControls() {
       const overlay = document.getElementById('touchOverlay');
       const holdIndicator = document.getElementById('holdIndicator');
       overlay.classList.add('active');
 
-      // Make game-container fill viewport and clip any EmulatorJS toolbar overflow.
-      // We target OUR container only — never EmulatorJS internal DOM elements (crashes iOS).
-      const container = document.getElementById('game-container');
-      container.style.cssText = 'width:100vw!important;height:100vh!important;position:fixed!important;top:0!important;left:0!important;z-index:1!important;overflow:hidden!important;';
+      // game-container is already position:absolute filling the fixed playerView.
+      // Do NOT add position:fixed here — stacked fixed contexts crash iOS Safari WebGL.
 
       // iOS audio unlock: AudioContext must be resumed during a user gesture.
-      // Our overlay intercepts all touches, so EmulatorJS never gets the gesture.
-      // We resume all AudioContexts on the first touch.
+      // Our overlay intercepts all touches via e.preventDefault(), so EmulatorJS
+      // never receives the user gesture it needs to unlock audio.
+      // Fix: on first touch, unlock the page audio system + resume EmulatorJS AudioContext.
       let audioUnlocked = false;
       const unlockAudio = () => {
         if (audioUnlocked) return;
         audioUnlocked = true;
-        // Find and resume any AudioContext EmulatorJS may have created
+
         const tryResume = () => {
+          // Resume EmulatorJS's AudioContext (may be at different paths depending on version)
           try {
             const emu = window.EJS_emulator;
-            if (emu && emu.Module && emu.Module.SDL2 && emu.Module.SDL2.audioContext) {
-              emu.Module.SDL2.audioContext.resume();
+            if (emu) {
+              const ctx = emu.Module?.SDL2?.audioContext
+                       || emu.Module?.SDL?.audioContext
+                       || emu.audioContext;
+              if (ctx && ctx.state === 'suspended') ctx.resume();
             }
           } catch(e) {}
-          // Also create+resume a throwaway context to unlock the audio system globally
+          // Create + resume a throwaway AudioContext to unlock the page audio system.
+          // Once any context is resumed during a user gesture, iOS unlocks audio globally.
           try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            ctx.resume().then(() => setTimeout(() => ctx.close(), 1000));
+            ctx.resume().then(() => setTimeout(() => ctx.close(), 500));
           } catch(e) {}
         };
+
+        // First attempt: immediate (inside user gesture — most reliable)
         tryResume();
-        // Retry after a short delay (EmulatorJS may create AudioContext late)
+        // Retries: EmulatorJS may create its AudioContext after our first touch
         setTimeout(tryResume, 500);
         setTimeout(tryResume, 1500);
+        setTimeout(tryResume, 3000);
       };
 
       const DRAG_STEP = 40;       // pixels of drag = one column move
@@ -1234,11 +1146,6 @@
       document.getElementById('holdIndicator').classList.remove('visible');
       clearTimeout(touchState.holdTimer);
       if (touchState.holdActive) releaseButton(NES.DOWN);
-
-      // Reset game-container styles
-      const container = document.getElementById('game-container');
-      container.style.cssText = '';
-
       currentControlScheme = null;
     }
 

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'retro-arcade-v19';
-const EMULATOR_CACHE = 'retro-arcade-emulator-v19';
+const CACHE_NAME = 'retro-arcade-v20';
+const EMULATOR_CACHE = 'retro-arcade-emulator-v20';
 
 const URLS_TO_CACHE = [
   './',
