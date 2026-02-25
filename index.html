@@ -659,7 +659,7 @@
       <div class="header">
         <h1>RETRO ARCADE</h1>
         <div class="header-subtitle">Tap a game to play</div>
-        <div class="version-tag">v18</div>
+        <div class="version-tag">v19</div>
       </div>
       <div class="library-content">
         <div id="emptyState" class="empty-state">
@@ -1068,10 +1068,38 @@
       const overlay = document.getElementById('touchOverlay');
       const holdIndicator = document.getElementById('holdIndicator');
       overlay.classList.add('active');
-      document.getElementById('playerView').classList.add('puzzle-mode');
 
-      // Start canvas mirror (copies game visuals; shield hides EmulatorJS UI)
-      startCanvasMirror();
+      // Make game-container fill viewport and clip any EmulatorJS toolbar overflow.
+      // We target OUR container only — never EmulatorJS internal DOM elements (crashes iOS).
+      const container = document.getElementById('game-container');
+      container.style.cssText = 'width:100vw!important;height:100vh!important;position:fixed!important;top:0!important;left:0!important;z-index:1!important;overflow:hidden!important;';
+
+      // iOS audio unlock: AudioContext must be resumed during a user gesture.
+      // Our overlay intercepts all touches, so EmulatorJS never gets the gesture.
+      // We resume all AudioContexts on the first touch.
+      let audioUnlocked = false;
+      const unlockAudio = () => {
+        if (audioUnlocked) return;
+        audioUnlocked = true;
+        // Find and resume any AudioContext EmulatorJS may have created
+        const tryResume = () => {
+          try {
+            const emu = window.EJS_emulator;
+            if (emu && emu.Module && emu.Module.SDL2 && emu.Module.SDL2.audioContext) {
+              emu.Module.SDL2.audioContext.resume();
+            }
+          } catch(e) {}
+          // Also create+resume a throwaway context to unlock the audio system globally
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            ctx.resume().then(() => setTimeout(() => ctx.close(), 1000));
+          } catch(e) {}
+        };
+        tryResume();
+        // Retry after a short delay (EmulatorJS may create AudioContext late)
+        setTimeout(tryResume, 500);
+        setTimeout(tryResume, 1500);
+      };
 
       const DRAG_STEP = 40;       // pixels of drag = one column move
       const HOLD_DELAY = 300;     // ms before hold = drop fast
@@ -1084,6 +1112,7 @@
 
       overlay.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        unlockAudio();
 
         // Two-finger tap → Start button (skip intro, pause, etc.)
         // Random delay (30-300ms) so the NES frame counter varies each time,
@@ -1202,11 +1231,13 @@
     function cleanupTouchControls() {
       const overlay = document.getElementById('touchOverlay');
       overlay.classList.remove('active');
-      document.getElementById('playerView').classList.remove('puzzle-mode');
       document.getElementById('holdIndicator').classList.remove('visible');
       clearTimeout(touchState.holdTimer);
       if (touchState.holdActive) releaseButton(NES.DOWN);
-      stopCanvasMirror();
+
+      // Reset game-container styles
+      const container = document.getElementById('game-container');
+      container.style.cssText = '';
 
       currentControlScheme = null;
     }
@@ -1369,19 +1400,6 @@
             screenshot: false,
             cacheManager: false,
             exitEmulation: false
-          };
-        }
-
-        // Force WebGL preserveDrawingBuffer ONLY for puzzle mode (canvas mirror needs it).
-        // Without this, the WebGL buffer is cleared after compositing → drawImage reads blank pixels.
-        // Skip for default mode — preserveDrawingBuffer hurts GPU perf on heavier cores (PSX).
-        if (currentControlScheme === 'puzzle' && !HTMLCanvasElement.prototype._origGetContext) {
-          HTMLCanvasElement.prototype._origGetContext = HTMLCanvasElement.prototype.getContext;
-          HTMLCanvasElement.prototype.getContext = function(type, attrs) {
-            if (type === 'webgl' || type === 'webgl2') {
-              attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
-            }
-            return HTMLCanvasElement.prototype._origGetContext.call(this, type, attrs);
           };
         }
 
